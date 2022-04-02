@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors'
-const PORT=4000;
+import { MongoClient } from 'mongodb';
+import dotenv from 'dotenv';
+dotenv.config()
+const PORT=process.env.PORT;
+const MONGO_URL=process.env.MONGO_URL
 const app= express();
 
 const mobiles = [
@@ -26,12 +30,37 @@ const mobiles = [
       company: "xiomi"
     }
   ];
+
+
+async function createConnection(){
+    const client=new MongoClient(MONGO_URL);
+    await client.connect();
+    console.log("Mongodb is connected😉👍")
+    return client;
+}
+const client=await createConnection();
+
+app.use(cors());
+app.use(express.json());
+
  app.get("/", (req,res)=>{
      res.send('Hello World 😉👍');
  });
-app.use(cors());
-app.get('/mobiles',(req,res)=>{
-    res.send(mobiles);
+
+app.get('/mobiles', async(req,res)=>{
+    const result=await client.db("mobilestore")
+    .collection('mobiles')
+    .find({}).toArray();
+ res.send(result);
 });
+
+app.post('/mobiles', async(req,res)=>{
+ const data=req.body;
+ const result=await client.db("mobilestore")
+ .collection('mobiles')
+ .insertMany(data);
+
+ res.send(result);
+}); 
 
  app.listen(PORT,()=>console.log('Listning to PORT',PORT));
